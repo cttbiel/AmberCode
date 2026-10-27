@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amper Code — Sistema Solar Off-Grid para Base Comunitária Móvel PMMG | Stellantis</title>
+    <meta name="description" content="Projeto de Estação Fotovoltaica Off-Grid e Supervisão Inteligente ESP32 para furgão Fiat Ducato da Polícia Militar de Minas Gerais. HackatOhm 2026 - CEFET-MG & Stellantis.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS (CDN para deploy instantâneo na Vercel/GitHub) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            400: '#38bdf8',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            900: '#0c4a6e',
+                        },
+                        amber: {
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                        },
+                        dark: {
+                            800: '#1e293b',
+                            900: '#0f172a',
+                            950: '#020617',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(51, 65, 85, 0.6);
+        }
+        .glow-effect {
+            box-shadow: 0 0 40px -10px rgba(2, 132, 199, 0.35);
+        }
+        .glow-amber {
+            box-shadow: 0 0 35px -8px rgba(245, 158, 11, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-dark-950 text-slate-100 font-sans antialiased selection:bg-brand-500 selection:text-white">
+
+    <!-- BARRA DE NAVEGAÇÃO -->
+    <header class="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-slate-800/80 transition-all">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-brand-500 to-amber-500 flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-brand-500/20">
+                    ⚡
+                </div>
+                <div>
+                    <span class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-brand-400 bg-clip-text text-transparent">AMPER CODE</span>
+                    <span class="hidden sm:inline-block ml-2 px-2 py-0.5 text-xs font-semibold rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20">HackatOhm 2026</span>
+                </div>
+            </div>
+
+            <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-300">
+                <a href="#visao-geral" class="hover:text-brand-400 transition-colors">Visão Geral</a>
+                <a href="#modelo-3d" class="hover:text-brand-400 transition-colors">Modelagem 3D</a>
+                <a href="#unifilar" class="hover:text-brand-400 transition-colors">Circuito Elétrico</a>
+                <a href="#esp32" class="hover:text-brand-400 transition-colors">Supervisão ESP32</a>
+                <a href="#orcamento" class="hover:text-brand-400 transition-colors">Orçamento BOM</a>
+                <a href="#equipe" class="hover:text-brand-400 transition-colors">Equipe</a>
+            </nav>
+
+            <div class="flex items-center gap-3">
+                <a href="docs/D10_AmperCode_Resumo.pdf" target="_blank" class="hidden sm:flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 transition">
+                    <svg class="w-4 h-4 text-red-400" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/></svg>
+                    Resumo PDF (2 págs)
+                </a>
+                <a href="#orcamento" class="px-4 py-2 text-xs font-bold rounded-lg bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-500 hover:to-brand-400 text-white shadow-md shadow-brand-500/20 transition">
+                    Ver BOM R2
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- HERO SECTION -->
+    <section id="visao-geral" class="pt-32 pb-20 relative overflow-hidden">
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(2,132,199,0.25),rgba(255,255,255,0))] pointer-events-none"></div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <div class="text-center max-w-3xl mx-auto mb-12">
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-xs font-semibold text-slate-300 mb-6">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Desafio D10 Stellantis / Fiat & Polícia Militar de Minas Gerais
+                </div>
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white mb-6 leading-tight">
+                    Mobilidade Tática e Energia Solar <span class="bg-gradient-to-r from-brand-400 to-amber-400 bg-clip-text text-transparent">100% Off-Grid</span>
+                </h1>
+                <p class="text-base sm:text-lg text-slate-300 font-normal leading-relaxed">
+                    Eliminação total da dependência de tomadas da CEMIG na Base Comunitária Móvel da PMMG (furgão Fiat Ducato), através de captação solar compacta de 1,53 m², gerenciamento automático dos bancos de bateria de 12V e 48V, e supervisão inteligente com ESP32.
+                </p>
+            </div>
+
+            <!-- CARDS DE MÉTRICAS -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto mb-16">
+                <div class="glass-panel p-5 rounded-2xl border border-slate-800/80 text-center hover:border-brand-500/50 transition">
+                    <div class="text-2xl sm:text-3xl font-extrabold text-brand-400 font-mono mb-1">0%</div>
+                    <div class="text-xs font-medium text-slate-400">Dependência da CEMIG</div>
+                </div>
+                <div class="glass-panel p-5 rounded-2xl border border-slate-800/80 text-center hover:border-brand-500/50 transition">
+                    <div class="text-2xl sm:text-3xl font-extrabold text-amber-400 font-mono mb-1">1,53 m²</div>
+                    <div class="text-xs font-medium text-slate-400">Área no Teto (Limite C01)</div>
+                </div>
+                <div class="glass-panel p-5 rounded-2xl border border-slate-800/80 text-center hover:border-brand-500/50 transition">
+                    <div class="text-2xl sm:text-3xl font-extrabold text-emerald-400 font-mono mb-1">12V & 48V</div>
+                    <div class="text-xs font-medium text-slate-400">Baterias Nativas do Ducato</div>
+                </div>
+                <div class="glass-panel p-5 rounded-2xl border border-slate-800/80 text-center hover:border-brand-500/50 transition">
+                    <div class="text-2xl sm:text-3xl font-extrabold text-sky-400 font-mono mb-1">R$ 8.032</div>
+                    <div class="text-xs font-medium text-slate-400">CAPEX Homologado (Lei 14.133)</div>
+                </div>
+            </div>
+
+            <!-- SHOWCASE VISUAL PRINCIPAL (RENDER 3D) -->
+            <div class="max-w-5xl mx-auto glass-panel p-3 sm:p-4 rounded-3xl border border-slate-700/60 glow-effect relative group">
+                <div class="relative rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 aspect-[16/9]">
+                    <img src="assets/render_3d_ducato_pmmg.png" alt="Render 3D Fiat Ducato PMMG Amper Code" class="w-full h-full object-cover transform group-hover:scale-[1.01] transition-transform duration-500">
+                    <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-dark-950 via-dark-950/80 to-transparent p-6 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
+                        <div>
+                            <span class="px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase bg-brand-500 text-white mb-2 inline-block">Modelagem 3D & Integração</span>
+                            <h3 class="text-lg sm:text-xl font-bold text-white">Viatura Fiat Ducato Maxicargo L4H2 — Base de Segurança Comunitária</h3>
+                            <p class="text-xs text-slate-300">Desenvolvido por Giovanna Silva para a equipe Amper Code.</p>
+                        </div>
+                        <a href="assets/render_3d_ducato_pmmg.png" target="_blank" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/20 text-white border border-white/20 transition flex items-center gap-1.5 backdrop-blur-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            Ver Imagem Alta Resolução
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SEÇÃO 2: MODELAGEM 3D E ARQUITETURA VEICULAR -->
+    <section id="modelo-3d" class="py-20 border-t border-slate-800/80 bg-slate-950/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="max-w-3xl mb-12">
+                <span class="text-brand-400 font-mono text-xs uppercase tracking-wider font-semibold">Espaço e Ergonomia Embarcada</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-white mt-1">Modelagem 3D & Disposição Eletromecânica</h2>
+                <p class="text-slate-400 mt-2 text-sm sm:text-base">
+                    Cada componente foi alocado respeitando a segurança contra vibrações veiculares, facilidade de manutenção e fluxo de ar para refrigeração dos conversores.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
+                <!-- Zona 1: Teto -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800 hover:border-brand-500/40 transition flex flex-col justify-between">
+                    <div>
+                        <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold mb-4 border border-amber-500/20">
+                            ☀️
+                        </div>
+                        <h3 class="text-lg font-bold text-white mb-2">1. Teto: Captação Solar</h3>
+                        <p class="text-xs text-slate-300 leading-relaxed mb-4">
+                            Módulo monocristalino de 310 Wp (1.650 x 880 mm = 1,53 m²) fixado por suportes em perfil "Z" de alumínio naval com parafusos inox e vedação por polímero PU. Entrada de cabos por passa-cabos duplo estanque IP68.
+                        </p>
+                    </div>
+                    <div class="text-[11px] font-mono text-amber-400/90 bg-amber-500/5 px-3 py-2 rounded-lg border border-amber-500/10">
+                        Atende Restrição C01: Área ≤ 1,5 m²
+                    </div>
+                </div>
+
+                <!-- Zona 2: Cabine -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800 hover:border-brand-500/40 transition flex flex-col justify-between">
+                    <div>
+                        <div class="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center font-bold mb-4 border border-sky-500/20">
+                            🚗
+                        </div>
+                        <h3 class="text-lg font-bold text-white mb-2">2. Cabine: Bateria 12V (Partida)</h3>
+                        <p class="text-xs text-slate-300 leading-relaxed mb-4">
+                            Bateria EFB de 72 Ah (864 Wh) sob o assoalho do condutor. Responsável pelo motor de arranque. Alimentada via cabo de 16 mm² a partir do conversor Buck (48V→13,8V 10A) com sensoriamento Kelvin a 4 fios direto nos polos.
+                        </p>
+                    </div>
+                    <div class="text-[11px] font-mono text-sky-400/90 bg-sky-500/5 px-3 py-2 rounded-lg border border-sky-500/10">
+                        Prioridade Zero: Nunca perde partida
+                    </div>
+                </div>
+
+                <!-- Zona 3: Baú Técnico -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800 hover:border-brand-500/40 transition flex flex-col justify-between">
+                    <div>
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold mb-4 border border-emerald-500/20">
+                            ⚡
+                        </div>
+                        <h3 class="text-lg font-bold text-white mb-2">3. Baú Técnico: Armazenamento & CA</h3>
+                        <p class="text-xs text-slate-300 leading-relaxed mb-4">
+                            Bateria 48V 19,5Ah Li-Ion (856 Wh) com BMS integrado. Inversor senoidal puro de 3.000W 48V/127V, controlador MPPT ZK-SJ20, quadros CC e CA com proteções completas e módulo de supervisão ESP32.
+                        </p>
+                    </div>
+                    <div class="text-[11px] font-mono text-emerald-400/90 bg-emerald-500/5 px-3 py-2 rounded-lg border border-emerald-500/10">
+                        Central de Força e Inteligência
+                    </div>
+                </div>
+            </div>
+
+            <!-- PLANTA BAIXA ELÉTRICA -->
+            <div class="glass-panel p-4 sm:p-6 rounded-3xl border border-slate-800">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-white">Planta Baixa Elétrica & Elevação Lateral (CAD)</h3>
+                        <p class="text-xs text-slate-400">Roteamento de eletrodutos antichama separados para CC e CA.</p>
+                    </div>
+                    <a href="assets/planta_baixa_eletrica_ducato.png" target="_blank" class="text-xs font-semibold text-brand-400 hover:underline">
+                        Abrir Planta em Alta Definição →
+                    </a>
+                </div>
+                <div class="rounded-xl overflow-hidden border border-slate-700/60 bg-white">
+                    <img src="assets/planta_baixa_eletrica_ducato.png" alt="Planta Baixa Elétrica Ducato" class="w-full h-auto">
+                </div>
+            </div>
+
+            <!-- GIOVANNA: ÁREA RESERVADA PARA NOVOS RENDERS -->
+            <!-- 
+                DICA GIOVANNA: Para adicionar mais fotos da modelagem ou renders de detalhe do interior da van,
+                basta colocar o arquivo na pasta 'assets/' e adicionar uma tag <img> aqui!
+            -->
+        </div>
+    </section>
+
+    <!-- SEÇÃO 3: CIRCUITO ELÉTRICO UNIFILAR -->
+    <section id="unifilar" class="py-20 border-t border-slate-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="max-w-3xl mb-12">
+                <span class="text-brand-400 font-mono text-xs uppercase tracking-wider font-semibold">Engenharia Elétrica & Proteção</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-white mt-1">Diagrama Unifilar & Segurança Normativa</h2>
+                <p class="text-slate-400 mt-2 text-sm sm:text-base">
+                    Projetado em estrita conformidade com as normas ABNT NBR 5410 (Instalações elétricas de baixa tensão) e NBR 16690 (Sistemas fotovoltaicos).
+                </p>
+            </div>
+
+            <!-- DESTAQUES DE SEGURANÇA -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                <div class="glass-panel p-5 rounded-2xl border border-slate-800">
+                    <div class="text-brand-400 font-mono text-xs font-bold mb-1">PROTEÇÃO CONTRA SURTOS</div>
+                    <h4 class="text-sm font-bold text-white mb-2">DPS Clamper Solar + Front</h4>
+                    <p class="text-xs text-slate-300">
+                        DPS CC Tipo 2 Classe II de 1.040V (Sete Lagoas - MG) na string solar e DPS CA Front 275V 20kA a montante do DR no quadro de 127V.
+                    </p>
+                </div>
+                <div class="glass-panel p-5 rounded-2xl border border-slate-800">
+                    <div class="text-emerald-400 font-mono text-xs font-bold mb-1">PROTEÇÃO CONTRA CHOQUES</div>
+                    <h4 class="text-sm font-bold text-white mb-2">IDR 40A / 30mA Bipolar</h4>
+                    <p class="text-xs text-slate-300">
+                        Desarme em menos de 20 ms em caso de fuga para carcaça. Associado à haste cobreada 5/8" x 2,4m cravada ao solo (Esquema TT temporário).
+                    </p>
+                </div>
+                <div class="glass-panel p-5 rounded-2xl border border-slate-800">
+                    <div class="text-amber-400 font-mono text-xs font-bold mb-1">CHAVEAMENTO SEGURO</div>
+                    <h4 class="text-sm font-bold text-white mb-2">Zero Arco Voltaico em 48V</h4>
+                    <p class="text-xs text-slate-300">
+                        Chaveamento de carga efetuado via pino de enable do conversor e relé de estado sólido / contator CC, protegendo os contatos contra fusão.
+                    </p>
+                </div>
+            </div>
+
+            <!-- FLUXO VISUAL DO DIAGRAMA UNIFILAR -->
+            <div class="glass-panel p-6 rounded-3xl border border-slate-800 font-mono text-xs">
+                <h3 class="text-sm font-bold text-white font-sans mb-4 flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-brand-400"></span>
+                    Caminho Físico da Energia (Da Radiação Solar às Cargas da PMMG)
+                </h3>
+                <div class="space-y-3 text-slate-300">
+                    <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 flex items-center justify-between flex-wrap gap-2">
+                        <span class="text-amber-400 font-bold">[1] Módulo 310 Wp</span>
+                        <span>→ Conectores MC4 → Cabo Solar 4mm²</span>
+                        <span class="text-slate-400">Quadro CC IP65 (Disjuntor CC 16A + DPS Clamper 1040V)</span>
+                    </div>
+                    <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 flex items-center justify-between flex-wrap gap-2">
+                        <span class="text-brand-400 font-bold">[2] Conversão MPPT</span>
+                        <span>→ MPPT ZK-SJ20 (300W) → Disjuntor CC 20A</span>
+                        <span class="text-slate-400">Alimenta Barramento CC de Cobre 100A (48Vcc)</span>
+                    </div>
+                    <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 flex items-center justify-between flex-wrap gap-2">
+                        <span class="text-emerald-400 font-bold">[3] Bateria 48V Li-Ion</span>
+                        <span>← Chave Seccionadora 100A + Fusível ANL 100A + BMS Integrado</span>
+                        <span class="text-slate-400">Armazenamento Principal de TI (856 Wh)</span>
+                    </div>
+                    <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 flex items-center justify-between flex-wrap gap-2">
+                        <span class="text-sky-400 font-bold">[4] Ramo Buck 12V</span>
+                        <span>→ Disjuntor 6A → Buck 48V/13,8V 10A → Fusível 7,5A → Cabo 16mm²</span>
+                        <span class="text-slate-400">Recarga da Bateria 12V EFB (864 Wh) da Cabine</span>
+                    </div>
+                    <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 flex items-center justify-between flex-wrap gap-2">
+                        <span class="text-indigo-400 font-bold">[5] Inversor 3kW 127V</span>
+                        <span>→ Disjuntor CC 100A → Epever IP3000 (Onda Senoidal Pura 60Hz)</span>
+                        <span class="text-slate-400">Quadro CA 127V (Geral 25A + DPS 275V + IDR 40A/30mA)</span>
+                    </div>
+                    <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 flex items-center justify-between flex-wrap gap-2">
+                        <span class="text-purple-400 font-bold">[6] Cargas CA PMMG</span>
+                        <span>→ 6 Circuitos Terminais com Disjuntores Curva C</span>
+                        <span class="text-slate-400">Notebooks, Frigobar, NVR, Wi-Fi e Câmeras PoE</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SEÇÃO 4: AUTOMAÇÃO E SUPERVISÃO COM ESP32 -->
+    <section id="esp32" class="py-20 border-t border-slate-800/80 bg-slate-950/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="max-w-3xl mb-12">
+                <span class="text-brand-400 font-mono text-xs uppercase tracking-wider font-semibold">Automação Inteligente & Firmware</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-white mt-1">Supervisão com ESP32 & Máquina de Estados (FSM)</h2>
+                <p class="text-slate-400 mt-2 text-sm sm:text-base">
+                    O microcontrolador atua como maestro do sistema: mede 7 grandezas físicas, aplica histerese temporal anti-repique, protege as baterias contra sobretemperatura e gerencia o deslastre de cargas.
+                </p>
+            </div>
+
+            <!-- FLUXOGRAMAS ESP32 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+                <div class="glass-panel p-4 rounded-2xl border border-slate-800">
+                    <h4 class="text-sm font-bold text-white mb-2 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-brand-400"></span>
+                        Fluxograma da Lógica de Controle
+                    </h4>
+                    <div class="rounded-xl overflow-hidden border border-slate-700/60 bg-white">
+                        <img src="assets/Figura1_fluxograma_controle_ESP32.png" alt="Fluxograma ESP32" class="w-full h-auto">
+                    </div>
+                </div>
+
+                <div class="glass-panel p-4 rounded-2xl border border-slate-800">
+                    <h4 class="text-sm font-bold text-white mb-2 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        Diagrama de Blocos do Hardware
+                    </h4>
+                    <div class="rounded-xl overflow-hidden border border-slate-700/60 bg-white">
+                        <img src="assets/Figura2_diagrama_de_blocos_ESP32.png" alt="Diagrama de Blocos ESP32" class="w-full h-auto">
+                    </div>
+                </div>
+            </div>
+
+            <!-- FSM CARDS -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div class="glass-panel p-4 rounded-xl border border-slate-800">
+                    <div class="text-[10px] font-mono font-bold text-slate-400 uppercase">Estado 0</div>
+                    <div class="text-sm font-bold text-white mt-1">STANDBY</div>
+                    <p class="text-xs text-slate-400 mt-2">Sem irradiação solar (noite/chuva). Saídas desabilitadas; BLE em modo de baixo consumo.</p>
+                </div>
+                <div class="glass-panel p-4 rounded-xl border border-sky-500/40 bg-sky-950/20">
+                    <div class="text-[10px] font-mono font-bold text-sky-400 uppercase">Estado 1 (Prioridade)</div>
+                    <div class="text-sm font-bold text-white mt-1">CARGA 12V</div>
+                    <p class="text-xs text-slate-300 mt-2">Bateria EFB abaixo de 12,2V. 100% da geração comutada para garantir partida da Fiat Ducato.</p>
+                </div>
+                <div class="glass-panel p-4 rounded-xl border border-emerald-500/40 bg-emerald-950/20">
+                    <div class="text-[10px] font-mono font-bold text-emerald-400 uppercase">Estado 2 (Operação)</div>
+                    <div class="text-sm font-bold text-white mt-1">CARGA 48V</div>
+                    <p class="text-xs text-slate-300 mt-2">EFB saudável. Energia solar direcionada ao banco Li-Ion que alimenta os equipamentos de TI da PM.</p>
+                </div>
+                <div class="glass-panel p-4 rounded-xl border border-amber-500/40 bg-amber-950/20">
+                    <div class="text-[10px] font-mono font-bold text-amber-400 uppercase">Estado 3</div>
+                    <div class="text-sm font-bold text-white mt-1">FLUTUAÇÃO</div>
+                    <p class="text-xs text-slate-300 mt-2">Ambas as baterias satisfeitas. EFB mantida em 13,8V contínuos; Li-Ion protegido contra sobrecarga.</p>
+                </div>
+                <div class="glass-panel p-4 rounded-xl border border-rose-500/40 bg-rose-950/20">
+                    <div class="text-[10px] font-mono font-bold text-rose-400 uppercase">Estado 4 (Proteção)</div>
+                    <div class="text-sm font-bold text-white mt-1">TRIP TÉRMICO</div>
+                    <p class="text-xs text-slate-300 mt-2">T12 ≥ 52°C ou T48 ≥ 55°C. Desacopla contatores, cooler a 100% e aciona alarme BLE para os policiais.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SEÇÃO 5: ORÇAMENTO BOM (LEI 14.133) -->
+    <section id="orcamento" class="py-20 border-t border-slate-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="max-w-3xl mb-8">
+                <span class="text-brand-400 font-mono text-xs uppercase tracking-wider font-semibold">Viabilidade Econômica & Licitação</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-white mt-1">Lista de Materiais (BOM R2) & Cotações</h2>
+                <p class="text-slate-400 mt-2 text-sm sm:text-base">
+                    Pesquisa rigorosa no mercado mineiro com 3 cotações válidas para atendimento à Nova Lei de Licitações (Lei nº 14.133/2021).
+                </p>
+            </div>
+
+            <!-- QUADRO RESUMO DE CAPEX -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                <div class="glass-panel p-6 rounded-2xl border-2 border-emerald-500/50 bg-emerald-950/10">
+                    <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider font-mono">Proposta Principal Amper Code</span>
+                    <div class="text-3xl font-extrabold text-white mt-2 font-mono">R$ 8.032,82</div>
+                    <h4 class="text-sm font-bold text-slate-200 mt-1">Infraestrutura Fotovoltaica & Elétrica</h4>
+                    <p class="text-xs text-slate-300 mt-3 leading-relaxed">
+                        Aproveitamento das baterias originais do furgão Fiat Ducato (12V EFB + 48V Li-Ion). Cobre 100% dos materiais de geração, conversão, quadros e aterramento.
+                    </p>
+                </div>
+
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">Cargas Pré-Existentes PMMG</span>
+                    <div class="text-3xl font-extrabold text-slate-300 mt-2 font-mono">R$ 9.810,00</div>
+                    <h4 class="text-sm font-bold text-slate-300 mt-1">TI & Equipamentos Embarcados</h4>
+                    <p class="text-xs text-slate-400 mt-3 leading-relaxed">
+                        Laptops corporativos, NVR, câmeras PoE, roteador e frigobar. Itens operacionais de patrimônio da corporação (referência comercial).
+                    </p>
+                </div>
+
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800">
+                    <span class="text-xs font-bold text-amber-400 uppercase tracking-wider font-mono">Cenário Alternativo B</span>
+                    <div class="text-3xl font-extrabold text-amber-300 mt-2 font-mono">R$ 13.532,82</div>
+                    <h4 class="text-sm font-bold text-slate-300 mt-1">Com Banco LiFePO4 Novo (R$ 5.500)</h4>
+                    <p class="text-xs text-slate-400 mt-3 leading-relaxed">
+                        Caso a viatura não disponibilize a bateria de lítio de fábrica e a PMMG opte por adquirir um pack LiFePO4 48V 100Ah independente.
+                    </p>
+                </div>
+            </div>
+
+            <!-- TABELA RESUMIDA DE PRINCIPAIS ITENS -->
+            <div class="glass-panel rounded-2xl border border-slate-800 overflow-hidden mb-6">
+                <div class="p-4 border-b border-slate-800 bg-slate-900/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div class="font-bold text-sm text-white">Extrato de Componentes Homologados da BOM R2</div>
+                    <div class="flex items-center gap-2">
+                        <a href="docs/Lista_de_Materiais_Base_Comunitaria_PMMG_R2-AmperCode-Precos.xlsx" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            Baixar Planilha Excel Oficial (.xlsx)
+                        </a>
+                        <a href="docs/BOM_Precos_AmperCode.csv" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 transition">
+                            CSV
+                        </a>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs font-mono">
+                        <thead class="bg-slate-900 text-slate-400 text-[11px] uppercase border-b border-slate-800">
+                            <tr>
+                                <th class="p-3">Item</th>
+                                <th class="p-3">Componente</th>
+                                <th class="p-3">Qtd</th>
+                                <th class="p-3">Valor Unit.</th>
+                                <th class="p-3">Valor Total</th>
+                                <th class="p-3">Cotação & Fornecedor</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800/60 text-slate-300">
+                            <tr>
+                                <td class="p-3 font-bold text-brand-400">1.1</td>
+                                <td class="p-3 font-sans">Módulo Fotovoltaico Monocristalino 310 Wp (Ztroon ZTP-310MI)</td>
+                                <td class="p-3">3 un</td>
+                                <td class="p-3">R$ 460,00</td>
+                                <td class="p-3 font-bold text-white">R$ 1.380,00</td>
+                                <td class="p-3"><a href="https://lista.mercadolivre.com.br/painel-solar-310w-monocristalino" target="_blank" class="text-brand-400 hover:underline">Mercado Livre / Neosolar</a></td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-bold text-brand-400">1.6</td>
+                                <td class="p-3 font-sans">DPS CC Tipo 2 Classe II 1.040V (Proteção Solar)</td>
+                                <td class="p-3">2 un</td>
+                                <td class="p-3">R$ 165,00</td>
+                                <td class="p-3 font-bold text-white">R$ 330,00</td>
+                                <td class="p-3"><a href="https://www.lojaclamper.com.br/solar" target="_blank" class="text-brand-400 hover:underline">Clamper (Sete Lagoas/MG)</a></td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-bold text-brand-400">2.1</td>
+                                <td class="p-3 font-sans">Controlador MPPT Buck-Boost 48V (ZK-SJ20 300W)</td>
+                                <td class="p-3">1 un</td>
+                                <td class="p-3">R$ 195,00</td>
+                                <td class="p-3 font-bold text-white">R$ 195,00</td>
+                                <td class="p-3"><a href="https://lista.mercadolivre.com.br/modulo-zk-sj20-mppt" target="_blank" class="text-brand-400 hover:underline">Mercado Livre / Shopee</a></td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-bold text-brand-400">3.1</td>
+                                <td class="p-3 font-sans">Bateria 48V 19,5Ah Li-Ion (Bateria Original Fiat Ducato)</td>
+                                <td class="p-3">1 conj</td>
+                                <td class="p-3 text-emerald-400 font-bold">R$ 0,00</td>
+                                <td class="p-3 text-emerald-400 font-bold">R$ 0,00</td>
+                                <td class="p-3 font-sans text-slate-400">Nativa do Veículo (Ref. LiFePO4: R$ 5.500)</td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-bold text-brand-400">4.1</td>
+                                <td class="p-3 font-sans">Inversor Solar Off-Grid Epever IP3000-41(T) 3000W 48V/127V</td>
+                                <td class="p-3">1 un</td>
+                                <td class="p-3">R$ 3.490,00</td>
+                                <td class="p-3 font-bold text-white">R$ 3.490,00</td>
+                                <td class="p-3"><a href="https://lista.mercadolivre.com.br/inversor-epever-3000w-48v" target="_blank" class="text-brand-400 hover:underline">Epever Oficial / Neosolar</a></td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-bold text-brand-400">5.4</td>
+                                <td class="p-3 font-sans">IDR Bipolar 40A / 30mA (Proteção Anti-choque NBR 5410)</td>
+                                <td class="p-3">1 un</td>
+                                <td class="p-3">R$ 98,00</td>
+                                <td class="p-3 font-bold text-white">R$ 98,00</td>
+                                <td class="p-3"><a href="https://www.leroymerlin.com.br/busca?term=idr+bipolar+40a+30ma+steck" target="_blank" class="text-brand-400 hover:underline">Leroy Merlin BH / Steck</a></td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-bold text-brand-400">6.2</td>
+                                <td class="p-3 font-sans">Conversor Buck 48Vcc para 13,8Vcc 10A IP68 (Carga 12V)</td>
+                                <td class="p-3">1 un</td>
+                                <td class="p-3">R$ 175,00</td>
+                                <td class="p-3 font-bold text-white">R$ 175,00</td>
+                                <td class="p-3"><a href="https://lista.mercadolivre.com.br/conversor-48v-para-12v-10a" target="_blank" class="text-brand-400 hover:underline">Mercado Livre / ATO</a></td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-bold text-brand-400">8.2</td>
+                                <td class="p-3 font-sans">Haste de Aterramento Cobreada 5/8" x 2,4m + Conector GTDU</td>
+                                <td class="p-3">1 un</td>
+                                <td class="p-3">R$ 68,00</td>
+                                <td class="p-3 font-bold text-white">R$ 68,00</td>
+                                <td class="p-3"><a href="https://www.leroymerlin.com.br/busca?term=haste+aterramento+5-8+2-4m" target="_blank" class="text-brand-400 hover:underline">Leroy Merlin BH / Santil</a></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SEÇÃO 6: EQUIPE AMPER CODE -->
+    <section id="equipe" class="py-20 border-t border-slate-800/80 bg-slate-950/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-12">
+                <span class="text-brand-400 font-mono text-xs uppercase tracking-wider font-semibold">CEFET-MG — Campus Nova Gameleira</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-white mt-1">A Equipe Amper Code</h2>
+                <p class="text-slate-400 mt-2 text-sm">
+                    Estudantes de Engenharia Elétrica e Engenharia de Computação unidos para transformar a segurança pública de Minas Gerais.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto mb-12">
+                <div class="glass-panel p-5 rounded-2xl border border-slate-800 text-center">
+                    <div class="w-16 h-16 rounded-full bg-slate-800 text-brand-400 mx-auto mb-4 flex items-center justify-center font-bold text-xl border border-slate-700">
+                        NE
+                    </div>
+                    <h4 class="font-bold text-white text-sm">Nikolas Eduardo</h4>
+                    <p class="text-xs text-brand-400 font-medium">Líder da Equipe & Elétrica</p>
+                    <p class="text-[11px] text-slate-400 mt-2">Coordenação geral, articulação técnica e defesa do projeto.</p>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl border border-slate-800 text-center">
+                    <div class="w-16 h-16 rounded-full bg-slate-800 text-amber-400 mx-auto mb-4 flex items-center justify-center font-bold text-xl border border-slate-700">
+                        GS
+                    </div>
+                    <h4 class="font-bold text-white text-sm">Giovanna Silva</h4>
+                    <p class="text-xs text-amber-400 font-medium">Modelagem 3D & Elétrica</p>
+                    <p class="text-[11px] text-slate-400 mt-2">Estruturação da lista de materiais (BOM), modelagem CAD e render da viatura.</p>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl border border-slate-800 text-center">
+                    <div class="w-16 h-16 rounded-full bg-slate-800 text-sky-400 mx-auto mb-4 flex items-center justify-center font-bold text-xl border border-slate-700">
+                        GC
+                    </div>
+                    <h4 class="font-bold text-white text-sm">Gabriel Carvalho</h4>
+                    <p class="text-xs text-sky-400 font-medium">Eng. de Computação</p>
+                    <p class="text-[11px] text-slate-400 mt-2">Lógica FSM do ESP32, telemetria BLE, pesquisa de cotações (Lei 14.133) e desenvolvimento web.</p>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl border border-slate-800 text-center">
+                    <div class="w-16 h-16 rounded-full bg-slate-800 text-emerald-400 mx-auto mb-4 flex items-center justify-center font-bold text-xl border border-slate-700">
+                        LC
+                    </div>
+                    <h4 class="font-bold text-white text-sm">Lucas Chagas</h4>
+                    <p class="text-xs text-emerald-400 font-medium">Engenharia Elétrica</p>
+                    <p class="text-[11px] text-slate-400 mt-2">Dimensionamento dos processos de carregamento, estudo do painel e balanço energético.</p>
+                </div>
+            </div>
+
+            <div class="glass-panel p-4 rounded-xl border border-slate-800 max-w-2xl mx-auto text-center text-xs text-slate-400">
+                <span class="font-bold text-white">Docentes Orientadores:</span> Prof. Dr. Heros Carvalho Soares & Prof. Dr. Alexandre Zanni Hubinger (Departamento de Engenharia Elétrica / DECOM CEFET-MG).
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="py-10 border-t border-slate-800 text-center text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+                © 2026 <strong>Equipe Amper Code</strong> — CEFET-MG. HackatOhm 2026 (Stellantis / Fiat).
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="https://github.com/cttbiel/AmberCode" target="_blank" class="text-slate-400 hover:text-white transition">GitHub Repo</a>
+                <span>•</span>
+                <a href="docs/D10_AmperCode_Resumo.pdf" target="_blank" class="text-slate-400 hover:text-white transition">Relatório PDF</a>
+                <span>•</span>
+                <a href="#visao-geral" class="text-brand-400 hover:underline">Voltar ao topo ↑</a>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>
